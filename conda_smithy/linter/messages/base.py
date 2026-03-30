@@ -7,16 +7,8 @@ text, its identifier and the necessary variables.
 
 from dataclasses import asdict
 from inspect import cleandoc
+from string import Template
 from typing import ClassVar, Literal, Self
-
-CATEGORIES: dict[str, str] = {
-    "CBC": "Variants configuration (`conda_build_config.yaml`, `variants.yml`)",
-    "FC": "Feedstock configuration (`conda-forge.yml`)",
-    "R": "All recipe versions",
-    "R0": "Recipe v0 (`meta.yaml`)",
-    "R1": "Recipe v1 (`recipe.yaml`)",
-    "CF": "Issues specific to conda-forge",
-}
 
 
 class _BaseMessage:
@@ -56,8 +48,15 @@ class _BaseMessage:
     def _render(self) -> str:
         """
         Formats the `.message` text by using the dataclass attributes.
+
+        Uses `string.Template.safe_substitute`, so `$name` and `${name}` are
+        replacement fields. Curly braces are never interpreted and need no
+        escaping. Unrecognised ``$name`` tokens are left as-is by
+        ``safe_substitute``, so a bare ``$`` only needs to be written as ``$$``
+        when it is immediately followed by a valid identifier that is also a
+        key in ``_render_attributes()`` and must not be substituted.
         """
-        return cleandoc(self.message.format(**self._render_attributes()))
+        return cleandoc(Template(self.message).safe_substitute(self._render_attributes()))
 
     def _render_attributes(self) -> dict[str, str]:
         """
